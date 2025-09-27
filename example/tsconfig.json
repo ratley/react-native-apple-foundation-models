@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "apple-foundation-models": ["../src/index"],
+      "apple-foundation-models/*": ["../src/*"]
+    }
+  }
+}
