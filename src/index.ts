@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import type {
 	JSONSchema,
 	ObjectGenerationOptions,
@@ -6,8 +7,10 @@ import type {
 	TextGenerationResult,
 	TextModelAvailability,
 } from "./AppleFoundationModels.types";
-import AppleFoundationModelsModule from "./AppleFoundationModelsModule";
-import { toTextGenerationError } from "./errors";
+import AppleFoundationModelsModule from "./AppleFoundationModelsModule.ios";
+import { TextGenerationError, toTextGenerationError } from "./errors";
+
+const isAndroid = Platform.OS === "android";
 
 export * from "./AppleFoundationModels.types";
 export { default as AppleFoundationModelsView } from "./AppleFoundationModelsView";
@@ -18,6 +21,9 @@ export {
 } from "./errors";
 
 export async function isTextModelAvailable(): Promise<boolean> {
+	if (isAndroid) {
+		return false;
+	}
 	return AppleFoundationModelsModule.isTextModelAvailable();
 }
 
@@ -34,6 +40,12 @@ export async function isTextModelAvailable(): Promise<boolean> {
  * `reasonMessage` may include a human-readable explanation suitable for display or logging.
  */
 export async function getTextModelAvailability(): Promise<TextModelAvailability> {
+	if (isAndroid) {
+		return {
+			status: "unavailable",
+			reasonCode: "unsupported",
+		};
+	}
 	try {
 		const anyModule = AppleFoundationModelsModule as unknown as {
 			getTextModelAvailability?: () => Promise<TextModelAvailability>;
@@ -62,6 +74,13 @@ export async function generateText(
 
 	if (!prompt) {
 		throw new Error("Prompt must be a non-empty string.");
+	}
+
+	if (isAndroid) {
+		throw new TextGenerationError({
+			code: "ERR_TEXT_GENERATION_UNSUPPORTED",
+			message: "Text generation is not supported on Android.",
+		});
 	}
 
 	const { instructions, temperature, maxOutputTokens, sessionId } = options;
@@ -176,6 +195,15 @@ If a field is not derivable, return a sensible default or an empty value that fi
 	const system = [base, guidance.trim()]
 		.filter((v): v is string => typeof v === "string" && v.length > 0)
 		.join("\n\n");
+
+	if (isAndroid) {
+		const error = new Error(
+			"Structured generation is not supported on Android.",
+		);
+		(error as unknown as { code?: string }).code =
+			"ERR_OBJECT_GENERATION_UNSUPPORTED";
+		throw error;
+	}
 
 	// Prefer native guided generation if available
 	const nativeSupported =

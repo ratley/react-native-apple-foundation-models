@@ -2,7 +2,7 @@ import type {
 	NativeTextGenerationOptions,
 	NativeTextGenerationResult,
 } from "./AppleFoundationModels.types";
-import AppleFoundationModelsModule from "./AppleFoundationModelsModule";
+import AppleFoundationModelsModule from "./AppleFoundationModelsModule.ios";
 import { toTextGenerationError } from "./errors";
 
 /**
