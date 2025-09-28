@@ -1,11 +1,10 @@
 import { isTextModelAvailable } from "apple-foundation-models";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 const ScreenLink = ({ href, title }: { href: string; title: string }) => {
-	const router = useRouter();
 	return (
 		<Link style={{ width: "100%" }} href={href} asChild>
 			<TouchableOpacity
@@ -54,6 +53,10 @@ export default function Index() {
 			<View style={{ borderTopWidth: 1, borderColor: "#e5e7eb" }} />
 
 			<ScreenLink href="/text-gen-examples" title="Text generation examples" />
+			<ScreenLink
+				href="/object-gen-examples"
+				title="Structured output examples"
+			/>
 		</ScrollView>
 	);
 }

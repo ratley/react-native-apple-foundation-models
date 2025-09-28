@@ -4,6 +4,118 @@ import ExpoModulesCore
 import FoundationModels
 #endif
 
+// Utility to robustly find the first JSON object/array substring in a string
+enum JSONExtractor {
+  static func firstJSONObject(in text: String) -> String? {
+    // Work directly with UnicodeScalarView to slice safely
+    let scalars = text.unicodeScalars
+    let openers: [UnicodeScalar: UnicodeScalar] = ["{" : "}", "[" : "]"]
+    let quote: UnicodeScalar = "\"".unicodeScalars.first!
+    let backslash: UnicodeScalar = "\\".unicodeScalars.first!
+
+    var i = scalars.startIndex
+    while i < scalars.endIndex {
+      let startScalar = scalars[i]
+      if let closer = openers[startScalar] {
+        var depth = 0
+        var inString = false
+        var escape = false
+        var j = i
+        while j < scalars.endIndex {
+          let s = scalars[j]
+          if inString {
+            if escape { escape = false }
+            else if s == backslash { escape = true }
+            else if s == quote { inString = false }
+            j = scalars.index(after: j)
+            continue
+          }
+          if s == quote {
+            inString = true
+            j = scalars.index(after: j)
+            continue
+          }
+          if s == startScalar { depth += 1 }
+          else if s == closer { depth -= 1 }
+          if depth == 0 {
+            let slice = scalars[i...j]
+            return String(slice)
+          }
+          j = scalars.index(after: j)
+        }
+      }
+      i = scalars.index(after: i)
+    }
+    return nil
+  }
+}
+
+final class ObjectGenerationUnsupportedException: Exception {
+  override var reason: String {
+    "Structured generation requires iOS 26 or later on Apple Intelligence-capable hardware."
+  }
+
+  override var code: String {
+    "ERR_OBJECT_GENERATION_UNSUPPORTED"
+  }
+}
+
+final class ObjectPromptEmptyException: Exception {
+  override var reason: String {
+    "Prompt must be a non-empty string."
+  }
+
+  override var code: String {
+    "ERR_OBJECT_PROMPT_INVALID"
+  }
+}
+
+final class ObjectSchemaInvalidException: Exception {
+  private let details: String?
+
+  init(_ details: String? = nil, file: String = #fileID, line: UInt = #line, function: String = #function) {
+    self.details = details
+    super.init(file: file, line: line, function: function)
+  }
+
+  override var reason: String {
+    details ?? "Schema must be a valid JSON string."
+  }
+
+  override var code: String {
+    "ERR_OBJECT_SCHEMA_INVALID"
+  }
+}
+
+final class ObjectGenerationDecodeFailedException: Exception {
+  override var reason: String {
+    "Model did not return valid JSON."
+  }
+
+  override var code: String {
+    "ERR_OBJECT_GENERATION_DECODE_FAILED"
+  }
+}
+
+final class ObjectGenerationFailureException: Exception {
+  private let _reason: String
+  private let _cause: Error?
+
+  override var reason: String { _reason }
+  override var code: String { "ERR_OBJECT_GENERATION_RUNTIME" }
+
+  override var cause: Error? {
+    get { _cause }
+    set { /* immutable */ }
+  }
+
+  init(_ message: String = "Structured generation failed.", cause: Error? = nil, file: String = #fileID, line: UInt = #line, function: String = #function) {
+    self._reason = message
+    self._cause = cause
+    super.init(file: file, line: line, function: function)
+  }
+}
+
 final class TextGenerationUnsupportedException: Exception {
   override var reason: String {
     "Text generation requires iOS 26 or later on Apple Intelligence-capable hardware."
@@ -111,6 +223,39 @@ struct TextGenerationResult: Record {
   }
 }
 
+struct ObjectGenerationOptions: Record {
+  @Field public var prompt: String
+  @Field public var system: String?
+  @Field public var schema: String
+  @Field public var temperature: Double?
+  @Field("maxOutputTokens") public var maxOutputTokens: Int?
+  @Field public var sessionId: String?
+
+  public init() {
+    self._prompt = Field(wrappedValue: "")
+    self._system = Field(wrappedValue: nil)
+    self._schema = Field(wrappedValue: "")
+    self._temperature = Field(wrappedValue: nil)
+    self._maxOutputTokens = Field(wrappedValue: nil)
+    self._sessionId = Field(wrappedValue: nil)
+  }
+}
+
+struct ObjectGenerationResult: Record {
+  @Field public var json: String
+  @Field public var sessionId: String
+
+  public init() {
+    self._json = Field(wrappedValue: "")
+    self._sessionId = Field(wrappedValue: "")
+  }
+
+  public init(json: String, sessionId: String) {
+    self._json = Field(wrappedValue: json)
+    self._sessionId = Field(wrappedValue: sessionId)
+  }
+}
+
 public final class AppleFoundationModelsModule: Module {
 #if canImport(FoundationModels)
   // Stored properties cannot be marked @available. Use a lazy storage plus an accessor guarded by availability.
@@ -169,6 +314,76 @@ public final class AppleFoundationModelsModule: Module {
       }
 #else
       throw TextGenerationUnsupportedException()
+#endif
+    }
+
+    AsyncFunction("generateObject") { (options: ObjectGenerationOptions) -> ObjectGenerationResult in
+      let trimmedPrompt = options.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !trimmedPrompt.isEmpty else {
+        throw ObjectPromptEmptyException()
+      }
+
+      // Validate schema string parses as JSON
+      do {
+        let data = options.schema.data(using: .utf8) ?? Data()
+        _ = try JSONSerialization.jsonObject(with: data, options: [])
+      } catch {
+        throw ObjectSchemaInvalidException("Schema is not valid JSON.")
+      }
+
+      guard TextAvailability.isSupported() else {
+        throw ObjectGenerationUnsupportedException()
+      }
+
+#if canImport(FoundationModels)
+      guard #available(iOS 26.0, *) else {
+        throw ObjectGenerationUnsupportedException()
+      }
+
+      // Combine caller system with a strict JSON-only guidance
+      let guidance = "You must return ONLY valid JSON that conforms to this schema. No prose, no code fences, no explanations. Respond with a single JSON value. Schema: \(options.schema)"
+      let combinedSystem: String?
+      if let base = options.system?.trimmingCharacters(in: .whitespacesAndNewlines), !base.isEmpty {
+        combinedSystem = base + "\n\n" + guidance
+      } else {
+        combinedSystem = guidance
+      }
+
+      // Reuse the TextSessionStore for consistency
+      let sessionHandle = try await textSessionStore.session(for: TextGenerationOptions(
+        prompt: "",
+        system: combinedSystem,
+        temperature: nil,
+        maxOutputTokens: nil,
+        sessionId: options.sessionId
+      ))
+
+      var genOptions = GenerationOptions()
+      if let maxTokens = options.maxOutputTokens { genOptions.maximumResponseTokens = maxTokens }
+      if let temp = options.temperature { genOptions.temperature = temp }
+
+      do {
+        let response = try await sessionHandle.session.respond(
+          to: trimmedPrompt,
+          options: genOptions
+        )
+
+        // Attempt to extract a clean JSON substring (model may wrap with text accidentally)
+        let raw = response.content
+        let jsonCandidate = JSONExtractor.firstJSONObject(in: raw) ?? raw
+
+        // Validate JSON shape at least syntactically
+        guard let data = jsonCandidate.data(using: .utf8) else {
+          throw ObjectGenerationDecodeFailedException()
+        }
+        _ = try JSONSerialization.jsonObject(with: data, options: [])
+
+        return ObjectGenerationResult(json: jsonCandidate, sessionId: sessionHandle.id)
+      } catch {
+        throw ObjectGenerationFailureException("Structured generation failed.", cause: error)
+      }
+#else
+      throw ObjectGenerationUnsupportedException()
 #endif
     }
   }

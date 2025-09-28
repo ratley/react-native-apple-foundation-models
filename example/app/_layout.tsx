@@ -20,6 +20,10 @@ export default function Layout() {
 					name="text-gen-examples"
 					options={{ title: "Text Generation" }}
 				/>
+				<Stack.Screen
+					name="object-gen-examples"
+					options={{ title: "Structured Output" }}
+				/>
 			</Stack>
 		</SafeAreaProvider>
 	);
