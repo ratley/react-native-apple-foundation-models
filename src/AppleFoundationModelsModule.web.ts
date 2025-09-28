@@ -1,15 +1,23 @@
-import { registerWebModule, NativeModule } from 'expo';
+import { NativeModule, registerWebModule } from "expo";
 
-import { AppleFoundationModelsModuleEvents } from './AppleFoundationModels.types';
+import type {
+	NativeTextGenerationOptions,
+	NativeTextGenerationResult,
+} from "./AppleFoundationModels.types";
 
-class AppleFoundationModelsModule extends NativeModule<AppleFoundationModelsModuleEvents> {
-  PI = Math.PI;
-  async setValueAsync(value: string): Promise<void> {
-    this.emit('onChange', { value });
-  }
-  hello() {
-    return 'Hello world! 👋';
-  }
+class AppleFoundationModelsModule extends NativeModule {
+	async isTextModelAvailable(): Promise<boolean> {
+		return false;
+	}
+
+	async generateText(
+		_options: NativeTextGenerationOptions,
+	): Promise<NativeTextGenerationResult> {
+		throw new Error("Text generation is not supported in web environments.");
+	}
 }
 
-export default registerWebModule(AppleFoundationModelsModule, 'AppleFoundationModelsModule');
+export default registerWebModule(
+	AppleFoundationModelsModule,
+	"AppleFoundationModels",
+);
