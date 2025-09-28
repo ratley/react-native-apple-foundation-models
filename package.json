@@ -1,6 +1,6 @@
 {
 	"name": "@ratley/react-native-apple-foundation-models",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Access Apple’s on-device Foundation Models (text + image AI)",
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
