@@ -1,5 +1,13 @@
 import type { StyleProp, ViewStyle } from "react-native";
 
+/**
+ * Options for a single text generation request.
+ * - Provide a concise `prompt`. Keep it focused for best latency/quality on-device.
+ * - Optional `instructions` act like a system prompt for the session.
+ * - `temperature` should be conservative (e.g. 0.2–0.7) for deterministic outputs.
+ * - `maxOutputTokens` bounds the response length.
+ * - `sessionId` lets you continue a prior session; leave empty to auto-create.
+ */
 export type TextGenerationOptions = {
 	prompt: string;
 	instructions?: string;
@@ -8,6 +16,7 @@ export type TextGenerationOptions = {
 	sessionId?: string;
 };
 
+/** Result of a text generation call. */
 export type TextGenerationResult = {
 	text: string;
 	sessionId: string;
@@ -23,6 +32,9 @@ export type NativeTextGenerationOptions = Omit<
 
 export type NativeTextGenerationResult = TextGenerationResult;
 
+/**
+ * Normalized error codes for text generation failures.
+ */
 export type TextGenerationErrorCode =
 	| "ERR_TEXT_GENERATION_UNSUPPORTED"
 	| "ERR_TEXT_PROMPT_INVALID"
@@ -30,7 +42,11 @@ export type TextGenerationErrorCode =
 	| "ERR_TEXT_GENERATION_CANCELED"
 	| "ERR_TEXT_GENERATION_TIMEOUT"
 	| "ERR_TEXT_GENERATION_RUNTIME"
-	| "ERR_TEXT_GENERATION_MODEL_UNAVAILABLE";
+	| "ERR_TEXT_GENERATION_MODEL_UNAVAILABLE"
+	| "ERR_TEXT_MODEL_DEVICE_NOT_ELIGIBLE"
+	| "ERR_TEXT_MODEL_NOT_ENABLED"
+	| "ERR_TEXT_MODEL_NOT_READY"
+	| "ERR_TEXT_MODEL_UNKNOWN";
 
 // Minimal JSON schema (subset) for generateObject
 export type JSONSchema =
@@ -83,3 +99,36 @@ export type AppleFoundationModelsViewProps = {
 	onLoad: (event: { nativeEvent: { url: string } }) => void;
 	style?: StyleProp<ViewStyle>;
 };
+
+/**
+ * Availability of the on-device language model.
+ */
+export type TextModelAvailability =
+	| {
+			/**
+			 * Model is available and ready to use.
+			 */
+			status: "available";
+	  }
+	| {
+			/**
+			 * Model is not available. See `reasonCode` for the specific cause.
+			 */
+			status: "unavailable";
+			/**
+			 * Specific unavailability reason, mirroring SystemLanguageModel.availability:
+			 * - `deviceNotEligible`: Hardware doesn't support Apple Intelligence.
+			 * - `appleIntelligenceNotEnabled`: Apple Intelligence is turned off in Settings.
+			 * - `modelNotReady`: Model is downloading or otherwise not ready yet.
+			 * - `unknown`: Unrecognized reason reported by the system.
+			 * - `unsupported`: Platform/OS doesn't support the on-device model.
+			 */
+			reasonCode:
+				| "deviceNotEligible"
+				| "appleIntelligenceNotEnabled"
+				| "modelNotReady"
+				| "unknown"
+				| "unsupported";
+	  };
+
+// (Doc block moved above the first definitions to avoid duplicate declarations)

@@ -1,4 +1,4 @@
-import { isTextModelAvailable } from "apple-foundation-models";
+import { getTextModelAvailability } from "apple-foundation-models";
 import { Link } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
@@ -25,13 +25,25 @@ const ScreenLink = ({ href, title }: { href: string; title: string }) => {
 
 export default function Index() {
 	const [available, setAvailable] = useState<
-		"checking" | "available" | "unsupported"
+		"checking" | "available" | "unavailable"
 	>("checking");
+	const [reasonCode, setReasonCode] = useState<string | undefined>(undefined);
 
 	useEffect(() => {
-		isTextModelAvailable()
-			.then((ok) => setAvailable(ok ? "available" : "unsupported"))
-			.catch(() => setAvailable("unsupported"));
+		getTextModelAvailability()
+			.then((res) => {
+				if (res.status === "available") {
+					setAvailable("available");
+					setReasonCode(undefined);
+				} else {
+					setAvailable("unavailable");
+					setReasonCode(res.reasonCode);
+				}
+			})
+			.catch(() => {
+				setAvailable("unavailable");
+				setReasonCode("unknown");
+			});
 	}, []);
 
 	return (
@@ -44,10 +56,10 @@ export default function Index() {
 			</Text>
 			<Text style={{ color: "#000000", fontSize: 14 }}>
 				{available === "checking"
-					? "Checking device support..."
+					? "Checking model availability..."
 					: available === "available"
 						? "Text model available"
-						: "Text model unsupported on this device"}
+						: `Unavailable${reasonCode ? `: ${reasonCode}` : ""}`}
 			</Text>
 
 			<View style={{ borderTopWidth: 1, borderColor: "#e5e7eb" }} />

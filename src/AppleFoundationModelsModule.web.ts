@@ -3,11 +3,19 @@ import { NativeModule, registerWebModule } from "expo";
 import type {
 	NativeTextGenerationOptions,
 	NativeTextGenerationResult,
+	TextModelAvailability,
 } from "./AppleFoundationModels.types";
 
 class AppleFoundationModelsModule extends NativeModule {
 	async isTextModelAvailable(): Promise<boolean> {
 		return false;
+	}
+
+	async getTextModelAvailability(): Promise<TextModelAvailability> {
+		return {
+			status: "unavailable",
+			reasonCode: "unsupported",
+		};
 	}
 
 	async generateText(

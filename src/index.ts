@@ -4,6 +4,7 @@ import type {
 	ObjectGenerationResult,
 	TextGenerationOptions,
 	TextGenerationResult,
+	TextModelAvailability,
 } from "./AppleFoundationModels.types";
 import AppleFoundationModelsModule from "./AppleFoundationModelsModule";
 import { toTextGenerationError } from "./errors";
@@ -20,6 +21,40 @@ export async function isTextModelAvailable(): Promise<boolean> {
 	return AppleFoundationModelsModule.isTextModelAvailable();
 }
 
+/**
+ * Get precise availability of the on-device language model.
+ * - When `status === "available"`, the model is ready to use.
+ * - When `status === "unavailable"`, inspect `reasonCode` to choose a fallback UX:
+ *   - `deviceNotEligible`: hardware doesn’t support Apple Intelligence.
+ *   - `appleIntelligenceNotEnabled`: user has not enabled Apple Intelligence in Settings.
+ *   - `modelNotReady`: model is downloading or otherwise not yet ready.
+ *   - `unknown`: an unrecognized system-reported reason.
+ *   - `unsupported`: platform/OS does not support the on-device model.
+ *
+ * `reasonMessage` may include a human-readable explanation suitable for display or logging.
+ */
+export async function getTextModelAvailability(): Promise<TextModelAvailability> {
+	try {
+		const anyModule = AppleFoundationModelsModule as unknown as {
+			getTextModelAvailability?: () => Promise<TextModelAvailability>;
+		};
+		if (typeof anyModule.getTextModelAvailability === "function") {
+			return await anyModule.getTextModelAvailability();
+		}
+	} catch {}
+	// Fallback using boolean
+	const ok = await isTextModelAvailable();
+	return ok
+		? { status: "available" }
+		: {
+				status: "unavailable",
+				reasonCode: "unsupported",
+			};
+}
+
+/**
+ * Generate a single text response. Returns the text and the sessionId used.
+ */
 export async function generateText(
 	options: TextGenerationOptions,
 ): Promise<TextGenerationResult> {
@@ -116,6 +151,11 @@ function validateAgainstSchema(value: unknown, schema: JSONSchema): boolean {
 }
 
 // generateObject: prompt model to produce JSON, then parse + validate
+/**
+ * Generate a structured object matching `schema`.
+ * Prefers native guided generation when available, otherwise falls back to
+ * prompt-then-parse with runtime validation against the schema.
+ */
 export async function generateObject<T = unknown>(
 	options: ObjectGenerationOptions,
 ): Promise<ObjectGenerationResult<T>> {

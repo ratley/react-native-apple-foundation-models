@@ -256,6 +256,21 @@ struct ObjectGenerationResult: Record {
   }
 }
 
+struct TextModelAvailabilityResult: Record {
+  @Field public var status: String // "available" | "unavailable"
+  @Field public var reasonCode: String?
+
+  public init() {
+    self._status = Field(wrappedValue: "unavailable")
+    self._reasonCode = Field(wrappedValue: nil)
+  }
+
+  public init(status: String, reasonCode: String? = nil) {
+    self._status = Field(wrappedValue: status)
+    self._reasonCode = Field(wrappedValue: reasonCode)
+  }
+}
+
 public final class AppleFoundationModelsModule: Module {
 #if canImport(FoundationModels)
   // Stored properties cannot be marked @available. Use a lazy storage plus an accessor guarded by availability.
@@ -274,6 +289,33 @@ public final class AppleFoundationModelsModule: Module {
 
     AsyncFunction("isTextModelAvailable") { () -> Bool in
       TextAvailability.isSupported()
+    }
+
+    AsyncFunction("getTextModelAvailability") { () -> TextModelAvailabilityResult in
+#if canImport(FoundationModels)
+      if #available(iOS 26.0, *) {
+        let model = SystemLanguageModel.default
+        switch model.availability {
+        case .available:
+          return TextModelAvailabilityResult(status: "available")
+        case .unavailable(let reason):
+          let code: String = {
+            switch reason {
+            case .deviceNotEligible:
+              return "deviceNotEligible"
+            case .appleIntelligenceNotEnabled:
+              return "appleIntelligenceNotEnabled"
+            case .modelNotReady:
+              return "modelNotReady"
+            default:
+              return "unknown"
+            }
+          }()
+          return TextModelAvailabilityResult(status: "unavailable", reasonCode: code)
+        }
+      }
+#endif
+      return TextModelAvailabilityResult(status: "unavailable", reasonCode: "unsupported")
     }
 
     AsyncFunction("generateText") { (options: TextGenerationOptions) -> TextGenerationResult in
