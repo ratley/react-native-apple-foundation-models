@@ -1,34 +1,25 @@
 # apple-foundation-models
 
-Access Apple’s on-device Foundation Models (text + image AI)
+Access Apple's on-device Foundation Models for text on iOS.
 
-# API documentation
+## Installation
 
-- [Documentation for the latest stable release](https://docs.expo.dev/versions/latest/sdk/apple-foundation-models/)
-- [Documentation for the main branch](https://docs.expo.dev/versions/unversioned/sdk/apple-foundation-models/)
-
-# Installation in managed Expo projects
-
-For [managed](https://docs.expo.dev/archive/managed-vs-bare/) Expo projects, please follow the installation instructions in the [API documentation for the latest stable release](#api-documentation). If you follow the link and there is no documentation available then this library is not yet usable within managed projects &mdash; it is likely to be included in an upcoming Expo SDK release.
-
-# Installation in bare React Native projects
-
-For bare React Native projects, you must ensure that you have [installed and configured the `expo` package](https://docs.expo.dev/bare/installing-expo-modules/) before continuing.
-
-### Add the package to your npm dependencies
+Install the module:
 
 ```
-npm install apple-foundation-models
+npx expo install apple-foundation-models
 ```
 
-### Configure for Android
+Rebuild your native project:
 
+- **Expo (managed)**: run `npx expo prebuild` and rebuild your iOS app (EAS Build or `expo run:ios`).
+- **Bare React Native**: run `npx pod-install` after installing the package.
 
+## Platform requirements
 
-
-### Configure for iOS
-
-Run `npx pod-install` after installing the npm package.
+- **iOS**: Requires iOS 26+ and Apple Intelligence‑capable hardware.
+- **Web**: Not supported; calls will throw/return unavailable.
+- **Android**: Not supported for on‑device text models.
 
 # API quickstart
 
@@ -80,7 +71,7 @@ const { text, sessionId } = await generateText({
 
 ## Sessions (object API and React hook)
 
-For multiple related turns, use a reusable session. You don’t need to manage IDs manually unless you want to.
+For multiple related turns, use a reusable session. You don't need to manage IDs manually unless you want to.
 
 ```ts
 import { LLMSession } from "apple-foundation-models";
@@ -149,8 +140,6 @@ Thrown errors are normalized:
 
 Handle with `toTextGenerationError(error)` or your own guards.
 
-## Platform support
+# Contributing
 
-- iOS: Requires iOS 26+ and Apple Intelligence‑capable hardware. Availability can be `deviceNotEligible`, `appleIntelligenceNotEnabled`, `modelNotReady`, `unknown`, or `available`.
-- Web: Not supported; calls will throw/unavailable.
-- Android: Not supported for on‑device text models.
+Contributions are very welcome! Please refer to guidelines described in the [contributing guide]( https://github.com/expo/expo#contributing).
