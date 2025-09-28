@@ -1,10 +1,10 @@
 {
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true,
-    "paths": {
-      "apple-foundation-models": ["../src/index"],
-      "apple-foundation-models/*": ["../src/*"]
-    }
-  }
+	"extends": "expo/tsconfig.base",
+	"compilerOptions": {
+		"strict": true,
+		"paths": {
+			"react-native-apple-foundation-models": ["../src/index"],
+			"react-native-apple-foundation-models/*": ["../src/*"]
+		}
+	}
 }

@@ -27,7 +27,10 @@
 		"react-native",
 		"expo",
 		"apple-foundation-models",
-		"AppleFoundationModels"
+		"react-native-apple-foundation-models",
+		"AppleFoundationModels",
+		"apple",
+		"llm"
 	],
 	"repository": "https://github.com/ratley/react-native-apple-foundation-models",
 	"bugs": {

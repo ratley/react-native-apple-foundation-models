@@ -1,4 +1,4 @@
-# apple-foundation-models
+# react-native-apple-foundation-models
 
 Access Apple's on-device Foundation Models for text on iOS.
 
@@ -7,7 +7,7 @@ Access Apple's on-device Foundation Models for text on iOS.
 Install the module:
 
 ```
-npx expo install apple-foundation-models
+npx expo install @ratley/react-native-apple-foundation-models
 ```
 
 Rebuild your native project:
@@ -139,7 +139,3 @@ Thrown errors are normalized:
 - Object: codes like `ERR_OBJECT_PROMPT_INVALID`, `ERR_OBJECT_SCHEMA_INVALID`, `ERR_OBJECT_GENERATION_DECODE_FAILED`, `ERR_OBJECT_GENERATION_UNSUPPORTED`.
 
 Handle with `toTextGenerationError(error)` or your own guards.
-
-# Contributing
-
-Contributions are very welcome! Please refer to guidelines described in the [contributing guide]( https://github.com/expo/expo#contributing).

@@ -1,8 +1,8 @@
-import { getTextModelAvailability } from "apple-foundation-models";
 import { Link } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { getTextModelAvailability } from "react-native-apple-foundation-models";
 
 const ScreenLink = ({ href, title }: { href: string; title: string }) => {
 	return (

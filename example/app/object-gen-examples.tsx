@@ -1,4 +1,3 @@
-import { generateObject, JSONSchema } from "apple-foundation-models";
 import { useState } from "react";
 import {
 	ActivityIndicator,
@@ -7,6 +6,10 @@ import {
 	Text,
 	View,
 } from "react-native";
+import {
+	generateObject,
+	JSONSchema,
+} from "react-native-apple-foundation-models";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type CardProps = {
